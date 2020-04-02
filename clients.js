@@ -1,28 +1,26 @@
-'use strict';
-let request = require('request')
-let NodeCache = require("node-cache");
-let myCache = new NodeCache();
+const { RESTDataSource } = require('apollo-datasource-rest');
 
-const clientsURL = 'http://www.mocky.io/v2/5808862710000087232b75ac';
-
-exports.getClients = function getClients(callback) {
-    let myURL = clientsURL
-    let value = myCache.get(myURL);
-    if (value != undefined) {
-        return callback(value);
+class ClientAPI extends RESTDataSource {
+    constructor() {
+        super();
+        this.baseURL = 'http://www.mocky.io/v2/';
     }
-    if (value == undefined) {
-        request({ url: myURL, json: true }, (error, response, body) => {
-            if (error && response.statusCode === 500) {
-                console.error(err.stack);
-                return callback(undefined);
-            }
-            if (!error && response.statusCode === 200) {
-                myCache.set(myURL, body.clients, 100000000)
-                console.log(body.clients[0])
-                return callback(body.clients);
-            }
-        })
+
+    async getAllClients() {
+        const response = await this.get('5808862710000087232b75ac');
+        return Array.isArray(response.clients)
+            ? response.clients.map(client => this.clientReducer(client))
+            : [];
+    }
+
+    clientReducer(client) {
+        return {
+            id: client.id,
+            name: client.name,
+            email: client.email,
+            role: client.clientId,
+        };
     }
 }
 
+module.exports = ClientAPI;

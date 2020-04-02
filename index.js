@@ -1,30 +1,15 @@
-const clients = require('./clients.js');
+const ClientAPI = require('./clients.js');
+const PolicyAPI = require('./policies.js');
+
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
-
-const books = [
-    {
-        title: 'Harry Potter and the Chamber of Secrets',
-        author: 'J.K. Rowling',
-    },
-    {
-        title: 'Jurassic Park',
-        author: 'Michael Crichton',
-    },
-];
 
 // Construct a schema, using GraphQL schema language
 const typeDefs = gql`
   
   type Query {
-    hello: String
-    getBooks: [Book]
     getClients: [Client]
-    }
-
-  type Book {
-    title: String
-    author: String
+    getPolicies: [Policy]
     }
 
   type Client {
@@ -33,25 +18,39 @@ const typeDefs = gql`
     email: String
     role: String
     }
+
+  type Policy {
+    id: String
+    email: String
+    clientId: String
+    }
   
 `;
 
 // Provide resolver functions for your schema fields
 const resolvers = {
     Query: {
-        hello: () => "Hola Mundo",
-        getBooks: () => books,
-        getClients: () => clients.getClients( (v) => {return v} ),
+        getClients: (_, __, { dataSources }) =>
+            dataSources.ClientAPI.getAllClients(),
+
+        getPolicies: (_, __, { dataSources }) =>
+            dataSources.PolicyAPI.getAllPolicies(),
+
     },
 };
 
-
-
-const server = new ApolloServer({ typeDefs, resolvers });
+const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    dataSources: () => ({
+        ClientAPI: new ClientAPI(),
+        PolicyAPI: new PolicyAPI()
+    })
+});
 
 const app = express();
 server.applyMiddleware({ app });
 
-app.listen({ port: 4000 }, () =>
-    console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`)
+app.listen({ port: 4001 }, () =>
+    console.log(`🚀 Server ready at http://localhost:4001${server.graphqlPath}`)
 );
